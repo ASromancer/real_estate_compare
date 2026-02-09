@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>So Sánh Giá Căn Hộ: Hà Nội vs TP.HCM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Chosen Palette: Warm Neutrals & Professional Accents */
+        /* Background: #F9FAFB (Gray 50) */
+        /* Primary Text: #1F2937 (Gray 800) */
+        /* HN Accent (Cool): #3B82F6 (Blue 500) */
+        /* HCM Accent (Warm): #F97316 (Orange 500) */
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F9FAFB;
+            color: #1F2937;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            /* Constrain max width for readability */
+            height: 400px;
+            /* Default height */
+            margin: 0 auto;
+            /* Center horizontally */
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 300px;
+                /* Smaller height for mobile */
+            }
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4B5563;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+    <!-- 
+    Application Structure Plan:
+    1. Header: Clear title and purpose statement.
+    2. Executive Summary (Dashboard): Key aggregate stats (Avg Price, Avg Distance) to give immediate context.
+    3. The "Scatter Map" (Core Interaction): Interactive scatter plot (Price vs. Distance). This is the best way to visualize the trade-off between location and cost. 
+    4. Comparative Rankings: Bar charts comparing districts directly.
+    5. Affordability Calculator: Task-oriented section allowing users to input their own constraints (Budget, Size) to find suitable areas.
+    6. Data Table: Detailed view for granular exploration.
+    
+    Why this structure?
+    It moves from "Macro" (City averages) to "Relational" (Price vs Distance correlation) to "Micro" (Specific districts and personal budget suitability), guiding the user through understanding the market dynamics.
+    -->
+
+    <!-- 
+    Visualization & Content Choices:
+    1. Scatter Plot (Chart.js): 
+       - Goal: Relationship. Show correlation between Price/m2 and Distance.
+       - Interaction: Hover to see District details. Filter by City.
+       - Justification: Best for spotting outliers (undervalued/overvalued areas) and distinct market clusters.
+    
+    2. Horizontal Bar Chart (Chart.js):
+       - Goal: Compare. Rank districts by expensiveness.
+       - Interaction: Sorting toggle (High-Low / Low-High).
+    
+    3. Dynamic Recommendation Engine (Vanilla JS):
+       - Goal: Inform/Personalize.
+       - Interaction: Sliders for Budget and Area.
+       - Justification: Converts raw data into actionable advice for the user.
+       
+    CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+</head>
+
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+    <!-- Navigation / Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gray-800 text-white p-2 rounded-lg font-bold text-xl">BĐS</div>
+                <h1 class="text-xl font-semibold text-gray-900">Phân Tích Giá Căn Hộ: Hà Nội vs TP.HCM</h1>
+            </div>
+            <nav class="hidden md:flex space-x-8">
+                <a href="#overview" class="text-gray-500 hover:text-gray-900 font-medium">Tổng Quan</a>
+                <a href="#scatter-analysis" class="text-gray-500 hover:text-gray-900 font-medium">Biểu Đồ Giá/Khoảng
+                    Cách</a>
+                <a href="#calculator" class="text-gray-500 hover:text-gray-900 font-medium">Tìm Nhà</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full space-y-12">
+
+        <!-- Introduction Section -->
+        <section id="overview" class="space-y-4">
+            <div class="max-w-3xl">
+                <h2 class="text-3xl font-bold text-gray-900">Bức Tranh Toàn Cảnh Thị Trường</h2>
+                <p class="mt-4 text-lg text-gray-600 leading-relaxed">
+                    Báo cáo này cung cấp cái nhìn sâu sắc về sự chênh lệch giá bất động sản giữa hai đầu cầu kinh tế.
+                    Chúng tôi phân tích mối tương quan giữa <strong>Giá trên m²</strong> và <strong>Khoảng cách tới
+                        trung tâm</strong>
+                    (Hồ Hoàn Kiếm tại Hà Nội và Chợ Bến Thành tại TP.HCM). Dữ liệu bao gồm các mức giá trung bình điển
+                    hình cho phân khúc căn hộ trung-cao cấp.
+                </p>
+            </div>
+
+            <!-- Key Metrics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+                <!-- HN Stats -->
+                <div class="card border-l-4 border-blue-500">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase">Trung Bình Giá/m² (HN)</h3>
+                    <p class="mt-2 text-3xl font-bold text-gray-900" id="stat-hn-price">--</p>
+                    <p class="text-sm text-green-600 mt-1">Triệu VNĐ/m²</p>
+                </div>
+                <div class="card border-l-4 border-blue-500">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase">Khoảng Cách TB (HN)</h3>
+                    <p class="mt-2 text-3xl font-bold text-gray-900" id="stat-hn-dist">--</p>
+                    <p class="text-sm text-gray-500 mt-1">Km tới Hồ Gươm</p>
+                </div>
+
+                <!-- HCM Stats -->
+                <div class="card border-l-4 border-orange-500">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase">Trung Bình Giá/m² (TP.HCM)</h3>
+                    <p class="mt-2 text-3xl font-bold text-gray-900" id="stat-hcm-price">--</p>
+                    <p class="text-sm text-green-600 mt-1">Triệu VNĐ/m²</p>
+                </div>
+                <div class="card border-l-4 border-orange-500">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase">Khoảng Cách TB (TP.HCM)</h3>
+                    <p class="mt-2 text-3xl font-bold text-gray-900" id="stat-hcm-dist">--</p>
+                    <p class="text-sm text-gray-500 mt-1">Km tới Bến Thành</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Interactive Visualization: Scatter Plot -->
+        <section id="scatter-analysis" class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+            <div class="mb-6 border-b border-gray-100 pb-4">
+                <h2 class="text-2xl font-bold text-gray-900">Phân Tích: Giá Trị so với Vị Trí</h2>
+                <p class="mt-2 text-gray-600">
+                    Biểu đồ phân tán dưới đây là công cụ mạnh mẽ nhất để hiểu thị trường. Mỗi điểm tròn đại diện cho một
+                    khu vực/quận.
+                    Trục ngang là <strong>Khoảng cách tới trung tâm</strong>, trục dọc là <strong>Giá/m²</strong>.
+                    Khu vực lý tưởng nằm ở góc dưới bên trái (Gần trung tâm, giá thấp - rất hiếm).
+                </p>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8">
+                <!-- Controls Sidebar -->
+                <div class="w-full lg:w-1/4 space-y-6 bg-gray-50 p-4 rounded-lg h-fit">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Chọn Thành Phố</label>
+                        <div class="flex space-x-2">
+                            <button onclick="updateFilters('all')" id="btn-all"
+                                class="flex-1 py-2 px-3 rounded bg-gray-800 text-white text-sm font-medium transition hover:bg-gray-700">Tất
+                                Cả</button>
+                            <button onclick="updateFilters('HN')" id="btn-hn"
+                                class="flex-1 py-2 px-3 rounded bg-white border border-gray-300 text-gray-700 text-sm font-medium transition hover:bg-blue-50">Hà
+                                Nội</button>
+                            <button onclick="updateFilters('HCM')" id="btn-hcm"
+                                class="flex-1 py-2 px-3 rounded bg-white border border-gray-300 text-gray-700 text-sm font-medium transition hover:bg-orange-50">TP.HCM</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tầm Giá Tối Đa (Tr/m²): <span
+                                id="price-label" class="text-blue-600 font-bold">250</span></label>
+                        <input type="range" id="price-slider" min="30" max="250" value="250"
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            oninput="updateFilters()">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Khoảng Cách Tối Đa (Km): <span
+                                id="dist-label" class="text-blue-600 font-bold">20</span></label>
+                        <input type="range" id="dist-slider" min="1" max="20" value="20"
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            oninput="updateFilters()">
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-200">
+                        <p class="text-xs text-gray-500 italic">
+                            *Ghi chú: Dữ liệu mô phỏng dựa trên thị trường căn hộ 2024. Trung tâm HN là Hồ Gươm, TP.HCM
+                            là Chợ Bến Thành.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Scatter Chart Area -->
+                <div class="w-full lg:w-3/4 flex flex-col items-center">
+                    <div class="chart-container">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2 text-center">Di chuột vào các điểm để xem chi tiết từng khu
+                        vực.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparative Rankings -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="card">
+                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <span class="w-2 h-8 bg-blue-500 rounded mr-2"></span>
+                    Top Khu Vực Đắt Đỏ Nhất (Theo Đơn Giá)
+                </h3>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="barChartExpensive"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                    <span class="w-2 h-8 bg-green-500 rounded mr-2"></span>
+                    Khu Vực "Đáng Sống" (Giá Rẻ + Gần)
+                </h3>
+                <p class="text-sm text-gray-500 mb-4">Đánh giá dựa trên chỉ số hiệu quả: (Khoảng cách * Giá/m²) thấp
+                    nhất.</p>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="barChartValue"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Affordability Calculator -->
+        <section id="calculator" class="bg-gray-900 rounded-xl shadow-xl overflow-hidden text-white">
+            <div class="p-8 md:p-12">
+                <div class="max-w-3xl mx-auto text-center mb-10">
+                    <h2 class="text-3xl font-bold mb-4">Tìm Căn Hộ Phù Hợp Với Tài Chính</h2>
+                    <p class="text-gray-400">Nhập ngân sách và nhu cầu diện tích của bạn, chúng tôi sẽ đề xuất các khu
+                        vực khả thi tại cả Hà Nội và TP.HCM.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+                    <!-- Inputs -->
+                    <div class="space-y-8 bg-gray-800 p-6 rounded-lg">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Tổng Ngân Sách Của Bạn (Tỷ
+                                VNĐ)</label>
+                            <div class="flex items-center space-x-4">
+                                <input type="number" id="budget-input" value="4.5" step="0.1"
+                                    class="bg-gray-700 border border-gray-600 text-white text-lg rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                <span class="text-xl font-bold text-blue-400 w-24">Tỷ</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Diện Tích Mong Muốn (m²)</label>
+                            <div class="flex items-center space-x-4">
+                                <input type="number" id="area-input" value="70" step="5"
+                                    class="bg-gray-700 border border-gray-600 text-white text-lg rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                <span class="text-xl font-bold text-blue-400 w-24">m²</span>
+                            </div>
+                        </div>
+
+                        <button onclick="calculateAffordability()"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200 shadow-lg mt-4">
+                            Tìm Kiếm Khu Vực
+                        </button>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="bg-gray-800 p-6 rounded-lg min-h-[300px]">
+                        <h3 class="text-lg font-semibold mb-4 text-blue-300 border-b border-gray-700 pb-2">Khu Vực Đề
+                            Xuất</h3>
+                        <div id="calc-results" class="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                            <!-- Results injected here -->
+                            <p class="text-gray-500 italic">Nhấn "Tìm Kiếm" để xem kết quả...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Detailed Data Table -->
+        <section class="card">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Chi Tiết Dữ Liệu Thị Trường</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Thành Phố</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Quận/Khu Vực</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Khoảng Cách (Km)</th>
+                            <th scope="col"
+                                class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Giá TB (Triệu/m²)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Table rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-gray-400 py-8 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p>&copy; 2024 Báo Cáo Thị Trường BĐS. Dữ liệu mang tính chất tham khảo.</p>
+        </div>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // --- 1. DATA SOURCE (Simulated based on prompt & realistic 2024-2025 market knowledge) ---
+        // Distance Ref: HN -> Hoan Kiem, HCM -> Ben Thanh
+        const marketData = [
+            // Hanoi Data
+            { city: 'HN', district: 'Hoàn Kiếm', price: 220, distance: 0.5, desc: "Lõi trung tâm, giá trị di sản." },
+            { city: 'HN', district: 'Ba Đình', price: 130, distance: 2.5, desc: "Trung tâm hành chính, an ninh cao." },
+            { city: 'HN', district: 'Hai Bà Trưng', price: 100, distance: 3.0, desc: "Tiện ích đầy đủ, mật độ cao." },
+            { city: 'HN', district: 'Đống Đa', price: 85, distance: 4.0, desc: "Sầm uất, giao thông đông đúc." },
+            { city: 'HN', district: 'Tây Hồ', price: 110, distance: 5.0, desc: "Không gian sống tốt, người nước ngoài." },
+            { city: 'HN', district: 'Cầu Giấy', price: 75, distance: 7.0, desc: "Trung tâm văn phòng, giáo dục mới." },
+            { city: 'HN', district: 'Thanh Xuân', price: 65, distance: 8.0, desc: "Tập trung nhiều chung cư, tắc đường." },
+            { city: 'HN', district: 'Nam Từ Liêm', price: 55, distance: 10.0, desc: "Mỹ Đình, hạ tầng hiện đại." },
+            { city: 'HN', district: 'Bắc Từ Liêm', price: 45, distance: 11.0, desc: "Đang phát triển, gần KCN." },
+            { city: 'HN', district: 'Hoàng Mai', price: 45, distance: 9.0, desc: "Giá cả hợp lý, mật độ rất cao." },
+            { city: 'HN', district: 'Long Biên', price: 50, distance: 6.0, desc: "Thoáng đãng, qua cầu Chương Dương." },
+            { city: 'HN', district: 'Hà Đông', price: 40, distance: 13.0, desc: "Xa trung tâm, tàu điện Cát Linh." },
+            { city: 'HN', district: 'Gia Lâm (Ocean Park)', price: 48, distance: 15.0, desc: "Đô thị vệ tinh, tiện ích biển hồ." },
+
+            // HCM Data
+            { city: 'HCM', district: 'Quận 1', price: 280, distance: 0.5, desc: "Trung tâm tài chính, biểu tượng." },
+            { city: 'HCM', district: 'Quận 3', price: 140, distance: 2.0, desc: "Biệt thự cổ, không gian xanh." },
+            { city: 'HCM', district: 'Quận 4', price: 80, distance: 3.0, desc: "Qua cầu là tới Q1, diện tích nhỏ." },
+            { city: 'HCM', district: 'Bình Thạnh', price: 90, distance: 4.0, desc: "Cửa ngõ Đông, Vinhomes Central Park." },
+            { city: 'HCM', district: 'TP. Thủ Đức (Thảo Điền)', price: 110, distance: 6.0, desc: "Khu nhà giàu, ngập nước khi mưa." },
+            { city: 'HCM', district: 'TP. Thủ Đức (Thủ Thiêm)', price: 160, distance: 4.0, desc: "Trung tâm tài chính mới." },
+            { city: 'HCM', district: 'Quận 7 (Phú Mỹ Hưng)', price: 70, distance: 6.0, desc: "Quy hoạch chuẩn, cộng đồng quốc tế." },
+            { city: 'HCM', district: 'Quận 10', price: 75, distance: 5.0, desc: "Sầm uất, trung tâm ăn uống." },
+            { city: 'HCM', district: 'Quận 5', price: 60, distance: 5.5, desc: "Khu Chợ Lớn, văn hóa Hoa." },
+            { city: 'HCM', district: 'Phú Nhuận', price: 85, distance: 4.5, desc: "Vị trí vàng, giao thông thuận tiện." },
+            { city: 'HCM', district: 'Tân Bình', price: 65, distance: 7.0, desc: "Gần sân bay, khu dân cư lâu đời." },
+            { city: 'HCM', district: 'Bình Chánh', price: 35, distance: 14.0, desc: "Huyện ngoại thành, giá rẻ." },
+            { city: 'HCM', district: 'TP. Thủ Đức (Q9 cũ)', price: 45, distance: 15.0, desc: "Khu công nghệ cao, Vinhomes Grand Park." },
+            { city: 'HCM', district: 'Nhà Bè', price: 32, distance: 12.0, desc: "Đang phát triển, ngập triều cường." }
+        ];
+
+        // --- 2. STATE MANAGEMENT ---
+        let currentFilter = 'all'; // 'all', 'HN', 'HCM'
+        let maxPrice = 250;
+        let maxDist = 20;
+        let scatterChartInstance = null;
+        let barChartExpensiveInstance = null;
+        let barChartValueInstance = null;
+
+        // --- 3. CHART CONFIGURATION & INIT ---
+
+        function initCharts() {
+            // Scatter Plot: Price vs Distance
+            const ctxScatter = document.getElementById('scatterChart').getContext('2d');
+            scatterChartInstance = new Chart(ctxScatter, {
+                type: 'scatter',
+                data: {
+                    datasets: [] // Populated by updateCharts
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: 'Khoảng Cách tới Trung Tâm (Km)' },
+                            min: 0
+                        },
+                        y: {
+                            title: { display: true, text: 'Giá (Triệu VNĐ/m²)' },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const point = context.raw;
+                                    return `${point.district}: ${point.y} Tr/m² (${point.x} km)`;
+                                }
+                            }
+                        },
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+
+            // Bar Chart 1: Most Expensive
+            const ctxBar1 = document.getElementById('barChartExpensive').getContext('2d');
+            barChartExpensiveInstance = new Chart(ctxBar1, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, title: { display: true, text: 'Triệu/m²' } } }
+                }
+            });
+
+            // Bar Chart 2: Best Value (Price * Distance Metric)
+            // Lower is better. A simple heuristic for "Value" = Price * Distance (cheaper and closer is smaller)
+            const ctxBar2 = document.getElementById('barChartValue').getContext('2d');
+            barChartValueInstance = new Chart(ctxBar2, {
+                type: 'bar',
+                data: { labels: [], datasets: [] },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, title: { display: true, text: 'Chỉ Số (Càng thấp càng tốt)' } } }
+                }
+            });
+        }
+
+        // --- 4. LOGIC FUNCTIONS ---
+
+        function updateCharts() {
+            // Get slider values
+            maxPrice = document.getElementById('price-slider').value;
+            maxDist = document.getElementById('dist-slider').value;
+
+            // Update Labels
+            document.getElementById('price-label').innerText = maxPrice;
+            document.getElementById('dist-label').innerText = maxDist;
+
+            // Filter Data
+            const filteredData = marketData.filter(d => {
+                const cityMatch = currentFilter === 'all' || d.city === currentFilter;
+                const priceMatch = d.price <= maxPrice;
+                const distMatch = d.distance <= maxDist;
+                return cityMatch && priceMatch && distMatch;
+            });
+
+            // 1. Update Scatter Chart
+            const hnPoints = filteredData.filter(d => d.city === 'HN').map(d => ({ x: d.distance, y: d.price, district: d.district }));
+            const hcmPoints = filteredData.filter(d => d.city === 'HCM').map(d => ({ x: d.distance, y: d.price, district: d.district }));
+
+            scatterChartInstance.data.datasets = [
+                {
+                    label: 'Hà Nội',
+                    data: hnPoints,
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)', // Blue-500
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                {
+                    label: 'TP.HCM',
+                    data: hcmPoints,
+                    backgroundColor: 'rgba(249, 115, 22, 0.7)', // Orange-500
+                    borderColor: 'rgba(249, 115, 22, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }
+            ];
+            scatterChartInstance.update();
+
+            // 2. Update Expensive Bar Chart (Top 10)
+            const sortedByPrice = [...filteredData].sort((a, b) => b.price - a.price).slice(0, 8);
+            barChartExpensiveInstance.data.labels = sortedByPrice.map(d => `${d.district} (${d.city})`);
+            barChartExpensiveInstance.data.datasets = [{
+                data: sortedByPrice.map(d => d.price),
+                backgroundColor: sortedByPrice.map(d => d.city === 'HN' ? 'rgba(59, 130, 246, 0.8)' : 'rgba(249, 115, 22, 0.8)')
+            }];
+            barChartExpensiveInstance.update();
+
+            // 3. Update Value Chart (Top 8 Best Value: Lowest Price*Distance)
+            // Note: Very close but expensive is OK, Very far but cheap is OK.
+            const sortedByValue = [...filteredData]
+                .map(d => ({ ...d, score: d.price * d.distance }))
+                .sort((a, b) => a.score - b.score)
+                .slice(0, 8);
+
+            barChartValueInstance.data.labels = sortedByValue.map(d => `${d.district} (${d.city})`);
+            barChartValueInstance.data.datasets = [{
+                data: sortedByValue.map(d => d.score),
+                backgroundColor: sortedByValue.map(d => d.city === 'HN' ? 'rgba(59, 130, 246, 0.5)' : 'rgba(249, 115, 22, 0.5)')
+            }];
+            barChartValueInstance.update();
+
+            // 4. Update Table
+            renderTable(filteredData);
+        }
+
+        function updateStats() {
+            const hnData = marketData.filter(d => d.city === 'HN');
+            const hcmData = marketData.filter(d => d.city === 'HCM');
+
+            const avg = arr => arr.reduce((acc, curr) => acc + curr, 0) / arr.length;
+
+            const hnAvgPrice = avg(hnData.map(d => d.price)).toFixed(1);
+            const hnAvgDist = avg(hnData.map(d => d.distance)).toFixed(1);
+            const hcmAvgPrice = avg(hcmData.map(d => d.price)).toFixed(1);
+            const hcmAvgDist = avg(hcmData.map(d => d.distance)).toFixed(1);
+
+            document.getElementById('stat-hn-price').innerText = hnAvgPrice;
+            document.getElementById('stat-hn-dist').innerText = hnAvgDist;
+            document.getElementById('stat-hcm-price').innerText = hcmAvgPrice;
+            document.getElementById('stat-hcm-dist').innerText = hcmAvgDist;
+        }
+
+        function updateFilters(city) {
+            if (city) {
+                currentFilter = city;
+                // Update Button Styles
+                const btns = ['btn-all', 'btn-hn', 'btn-hcm'];
+                btns.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if ((id === 'btn-all' && city === 'all') || (id === 'btn-hn' && city === 'HN') || (id === 'btn-hcm' && city === 'HCM')) {
+                        btn.classList.remove('bg-white', 'text-gray-700', 'border');
+                        btn.classList.add('bg-gray-800', 'text-white');
+                    } else {
+                        btn.classList.add('bg-white', 'text-gray-700', 'border');
+                        btn.classList.remove('bg-gray-800', 'text-white');
+                    }
+                });
+            }
+            updateCharts();
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('data-table-body');
+            tbody.innerHTML = '';
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.city === 'HN' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
+                            ${item.city === 'HN' ? 'Hà Nội' : 'TP.HCM'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.district}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">${item.distance} km</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold text-right">${item.price} Tr</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function calculateAffordability() {
+            const budget = parseFloat(document.getElementById('budget-input').value) * 1000; // Convert Ty to Trieu
+            const area = parseFloat(document.getElementById('area-input').value);
+            const resultsContainer = document.getElementById('calc-results');
+
+            if (!budget || !area) return;
+
+            // Max acceptable price per m2
+            const maxPricePerM2 = budget / area;
+
+            // Find districts with price <= maxPricePerM2 (+10% margin allowed for negotiation/outliers)
+            const matches = marketData
+                .filter(d => d.price <= maxPricePerM2 * 1.1)
+                .sort((a, b) => b.price - a.price); // Sort by highest feasible price (usually better location)
+
+            resultsContainer.innerHTML = '';
+
+            if (matches.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="bg-red-900/50 border border-red-500 p-3 rounded text-red-200 text-sm">
+                        Rất tiếc, với ngân sách và diện tích này (Khoảng ${maxPricePerM2.toFixed(1)} Tr/m²), 
+                        khó tìm được căn hộ tại các khu vực trong cơ sở dữ liệu. Hãy thử giảm diện tích hoặc tăng ngân sách.
+                    </div>
+                `;
+                return;
+            }
+
+            // Group by City
+            const hnMatches = matches.filter(d => d.city === 'HN');
+            const hcmMatches = matches.filter(d => d.city === 'HCM');
+
+            const renderMatch = (item) => `
+                <div class="flex justify-between items-center bg-gray-700 p-3 rounded hover:bg-gray-600 transition">
+                    <div>
+                        <div class="font-bold text-white">${item.district} (${item.city})</div>
+                        <div class="text-xs text-gray-400">${item.distance}km tới trung tâm</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-blue-300 font-bold">${item.price} Tr/m²</div>
+                        <div class="text-xs text-gray-400">~${(item.price * area / 1000).toFixed(1)} Tỷ căn ${area}m²</div>
+                    </div>
+                </div>
+            `;
+
+            if (hnMatches.length > 0) {
+                resultsContainer.innerHTML += `<div class="text-sm font-bold text-gray-400 mt-2">Hà Nội (${hnMatches.length})</div>`;
+                hnMatches.forEach(m => resultsContainer.innerHTML += renderMatch(m));
+            }
+
+            if (hcmMatches.length > 0) {
+                resultsContainer.innerHTML += `<div class="text-sm font-bold text-gray-400 mt-2">TP.HCM (${hcmMatches.length})</div>`;
+                hcmMatches.forEach(m => resultsContainer.innerHTML += renderMatch(m));
+            }
+        }
+
+        // --- INIT APP ---
+        window.addEventListener('load', () => {
+            initCharts();
+            updateStats();
+            updateCharts();
+            calculateAffordability(); // Run initial calc with default values
+        });
+
+    </script>
+</body>
+
+</html>
